@@ -1,0 +1,1380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ML Learning Components & MNIST Solution</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Syne:wght@400;600;700;800&family=Syne+Mono&display=swap');
+
+  :root {
+    --bg: #0a0c10;
+    --surface: #111318;
+    --surface2: #181c24;
+    --border: #1e2530;
+    --accent: #00e5ff;
+    --accent2: #ff6b35;
+    --accent3: #a855f7;
+    --green: #00ff88;
+    --yellow: #ffd60a;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --code-bg: #0d1117;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    line-height: 1.7;
+    overflow-x: hidden;
+  }
+
+  /* GRID NOISE BACKGROUND */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,229,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,229,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .wrapper {
+    position: relative;
+    z-index: 1;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 60px 24px;
+  }
+
+  /* HEADER */
+  .header {
+    text-align: center;
+    margin-bottom: 80px;
+  }
+
+  .header .badge {
+    display: inline-block;
+    background: linear-gradient(135deg, var(--accent3), var(--accent));
+    color: #fff;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    padding: 6px 18px;
+    border-radius: 2px;
+    margin-bottom: 20px;
+  }
+
+  .header h1 {
+    font-size: clamp(2.2rem, 5vw, 4rem);
+    font-weight: 800;
+    line-height: 1.1;
+    background: linear-gradient(135deg, #fff 0%, var(--accent) 50%, var(--accent3) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 16px;
+  }
+
+  .header p {
+    color: var(--muted);
+    font-size: 1rem;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* SECTION HEADINGS */
+  .section-label {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 40px;
+  }
+
+  .section-label .tag {
+    background: var(--accent);
+    color: #000;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    font-size: 12px;
+    letter-spacing: 2px;
+    padding: 4px 12px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  .section-label h2 {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: #fff;
+  }
+
+  .section-label .line {
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, var(--border), transparent);
+  }
+
+  /* PART A — DIAGRAMS */
+  .part {
+    margin-bottom: 80px;
+  }
+
+  /* ML PIPELINE DIAGRAM */
+  .pipeline {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 32px 24px;
+    margin-bottom: 32px;
+    overflow-x: auto;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 4px;
+  }
+
+  .pipe-node {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .pipe-box {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 18px;
+    text-align: center;
+    min-width: 100px;
+    position: relative;
+    transition: border-color 0.3s, transform 0.3s;
+  }
+
+  .pipe-box:hover {
+    border-color: var(--accent);
+    transform: translateY(-3px);
+  }
+
+  .pipe-box .icon { font-size: 22px; display: block; margin-bottom: 4px; }
+  .pipe-box .name { font-size: 11px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: var(--accent); }
+  .pipe-box .desc { font-size: 10px; color: var(--muted); margin-top: 3px; font-family: 'JetBrains Mono', monospace; }
+
+  .pipe-arrow {
+    color: var(--muted);
+    font-size: 20px;
+    flex-shrink: 0;
+    padding: 0 4px;
+  }
+
+  /* NEURON DIAGRAM */
+  .diagram-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 32px;
+  }
+
+  @media (max-width: 700px) { .diagram-grid { grid-template-columns: 1fr; } }
+
+  .diagram-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+  }
+
+  .diagram-card h3 {
+    font-size: 13px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+    margin-bottom: 20px;
+  }
+
+  /* SVG NEURON */
+  svg.neuron-svg { width: 100%; height: 180px; }
+
+  /* CNN LAYERS */
+  .cnn-layers {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 6px;
+    height: 140px;
+    padding-bottom: 24px;
+  }
+
+  .cnn-layer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .cnn-block {
+    border-radius: 3px;
+    width: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 7px;
+    color: rgba(255,255,255,0.5);
+    font-family: 'JetBrains Mono', monospace;
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    letter-spacing: 1px;
+  }
+
+  .cnn-label {
+    font-size: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--muted);
+    text-align: center;
+    margin-top: 4px;
+  }
+
+  .layer-arrow-cnn {
+    color: var(--muted);
+    font-size: 14px;
+    margin-bottom: 28px;
+  }
+
+  /* COMPONENTS TABLE */
+  .comp-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 32px;
+    font-size: 13px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .comp-table th {
+    background: var(--surface2);
+    color: var(--accent);
+    text-align: left;
+    padding: 12px 16px;
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .comp-table td {
+    padding: 11px 16px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+    vertical-align: top;
+  }
+
+  .comp-table tr:hover td { background: var(--surface); }
+
+  .comp-table .tag-cell {
+    color: var(--green);
+    font-weight: 600;
+  }
+
+  /* LEARNING LOOP DIAGRAM */
+  .loop-diagram {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px;
+    margin-bottom: 32px;
+    text-align: center;
+  }
+
+  .loop-row {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0;
+    flex-wrap: wrap;
+  }
+
+  .loop-node {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 50px;
+    padding: 10px 20px;
+    font-size: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text);
+    white-space: nowrap;
+    transition: border-color 0.3s;
+  }
+  .loop-node:hover { border-color: var(--accent3); }
+
+  .loop-node.highlight { border-color: var(--accent2); color: var(--accent2); }
+  .loop-node.highlight2 { border-color: var(--green); color: var(--green); }
+
+  .loop-arrow-h { font-size: 18px; color: var(--muted); padding: 0 8px; }
+  .loop-row-v { margin: 12px 0; display: flex; justify-content: center; }
+  .loop-arrow-v { font-size: 18px; color: var(--muted); }
+
+  /* PART B — CODE */
+  .code-section {
+    margin-bottom: 30px;
+  }
+
+  .code-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-bottom: none;
+    border-radius: 10px 10px 0 0;
+    padding: 12px 20px;
+  }
+
+  .code-header .filename {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .code-header .lang-tag {
+    font-size: 10px;
+    background: var(--border);
+    color: var(--muted);
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 1px;
+  }
+
+  .code-header .dots {
+    display: flex;
+    gap: 6px;
+  }
+
+  .code-header .dot {
+    width: 11px; height: 11px;
+    border-radius: 50%;
+  }
+
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 0 0 10px 10px;
+    padding: 24px;
+    overflow-x: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12.5px;
+    line-height: 1.7;
+    tab-size: 4;
+  }
+
+  /* Syntax highlighting */
+  .kw { color: #ff7b72; }        /* keywords */
+  .fn { color: #d2a8ff; }        /* functions */
+  .str { color: #a5d6ff; }       /* strings */
+  .num { color: #f2cc60; }       /* numbers */
+  .cm { color: #8b949e; font-style: italic; } /* comments */
+  .cls { color: #ffa657; }       /* classes */
+  .var { color: #79c0ff; }       /* variables */
+  .op { color: #ff7b72; }        /* operators */
+  .dec { color: #e2e8f0; }       /* default */
+
+  /* RESULTS CARD */
+  .results-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 16px;
+    margin: 32px 0;
+  }
+
+  .result-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    text-align: center;
+  }
+
+  .result-card .val {
+    font-size: 2rem;
+    font-weight: 800;
+    font-family: 'JetBrains Mono', monospace;
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  .result-card .lbl {
+    font-size: 11px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .result-card.green { border-color: rgba(0,255,136,0.3); }
+  .result-card.green .val { color: var(--green); }
+  .result-card.cyan { border-color: rgba(0,229,255,0.3); }
+  .result-card.cyan .val { color: var(--accent); }
+  .result-card.orange { border-color: rgba(255,107,53,0.3); }
+  .result-card.orange .val { color: var(--accent2); }
+  .result-card.purple { border-color: rgba(168,85,247,0.3); }
+  .result-card.purple .val { color: var(--accent3); }
+
+  /* CALLOUT */
+  .callout {
+    background: var(--surface);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 8px 8px 0;
+    padding: 16px 20px;
+    margin: 20px 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--text);
+    line-height: 1.8;
+  }
+
+  .callout .title {
+    color: var(--accent);
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    display: block;
+  }
+
+  .callout.orange { border-left-color: var(--accent2); }
+  .callout.orange .title { color: var(--accent2); }
+  .callout.green { border-left-color: var(--green); }
+  .callout.green .title { color: var(--green); }
+  .callout.purple { border-left-color: var(--accent3); }
+  .callout.purple .title { color: var(--accent3); }
+
+  /* DIGIT SAMPLES VISUAL */
+  .digit-grid {
+    display: grid;
+    grid-template-columns: repeat(10, 1fr);
+    gap: 8px;
+    margin: 20px 0;
+  }
+
+  .digit-cell {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: clamp(1rem, 2vw, 1.8rem);
+    font-weight: 800;
+    font-family: 'JetBrains Mono', monospace;
+    transition: all 0.2s;
+    cursor: default;
+  }
+
+  .digit-cell:hover {
+    border-color: var(--accent);
+    transform: scale(1.1);
+    background: rgba(0,229,255,0.05);
+  }
+
+  /* FOOTER */
+  .footer {
+    text-align: center;
+    padding-top: 40px;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 1px;
+  }
+
+  /* ANIMATE IN */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .part, .code-section, .callout, .results-grid {
+    animation: fadeUp 0.6s ease both;
+  }
+
+  .separator {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--border), transparent);
+    margin: 60px 0;
+  }
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="badge">Question One — Machine Learning</div>
+    <h1>Learning Components<br>& MNIST Classification</h1>
+    <p>// Comprehensive solution · Parts (a) and (b)</p>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- PART A                                          -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <div class="part">
+    <div class="section-label">
+      <div class="tag">PART (a)</div>
+      <h2>Learning Components — Diagrams</h2>
+      <div class="line"></div>
+    </div>
+
+    <!-- 1. ML PIPELINE -->
+    <div class="callout">
+      <span class="title">Diagram 1 — The Machine Learning Pipeline</span>
+      A machine learning system is composed of several interacting components. Raw data flows through collection, preprocessing, model training, evaluation, and deployment. Each stage produces artefacts consumed by the next.
+    </div>
+
+    <div class="pipeline">
+      <div class="pipe-node">
+        <div class="pipe-box">
+          <span class="icon">🗃️</span>
+          <div class="name">Raw Data</div>
+          <div class="desc">images / text<br>labels</div>
+        </div>
+      </div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-node">
+        <div class="pipe-box">
+          <span class="icon">⚙️</span>
+          <div class="name">Preprocessing</div>
+          <div class="desc">normalize<br>augment</div>
+        </div>
+      </div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-node">
+        <div class="pipe-box">
+          <span class="icon">🧠</span>
+          <div class="name">Model</div>
+          <div class="desc">CNN / MLP<br>parameters</div>
+        </div>
+      </div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-node">
+        <div class="pipe-box">
+          <span class="icon">📉</span>
+          <div class="name">Loss Fn</div>
+          <div class="desc">cross-entropy<br>error signal</div>
+        </div>
+      </div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-node">
+        <div class="pipe-box">
+          <span class="icon">🔁</span>
+          <div class="name">Optimizer</div>
+          <div class="desc">Adam / SGD<br>backprop</div>
+        </div>
+      </div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-node">
+        <div class="pipe-box">
+          <span class="icon">📊</span>
+          <div class="name">Evaluation</div>
+          <div class="desc">accuracy<br>confusion matrix</div>
+        </div>
+      </div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-node">
+        <div class="pipe-box">
+          <span class="icon">🚀</span>
+          <div class="name">Deployment</div>
+          <div class="desc">inference<br>API / app</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. NEURON + CNN DIAGRAMS -->
+    <div class="diagram-grid">
+
+      <!-- Neuron -->
+      <div class="diagram-card">
+        <h3>Diagram 2 — Artificial Neuron</h3>
+        <svg class="neuron-svg" viewBox="0 0 320 180">
+          <!-- Input lines -->
+          <line x1="10" y1="40" x2="110" y2="90" stroke="#1e2530" stroke-width="2"/>
+          <line x1="10" y1="90" x2="110" y2="90" stroke="#1e2530" stroke-width="2"/>
+          <line x1="10" y1="140" x2="110" y2="90" stroke="#1e2530" stroke-width="2"/>
+          <!-- Input labels -->
+          <text x="8" y="38" fill="#79c0ff" font-family="JetBrains Mono" font-size="11">x₁</text>
+          <text x="8" y="93" fill="#79c0ff" font-family="JetBrains Mono" font-size="11">x₂</text>
+          <text x="8" y="143" fill="#79c0ff" font-family="JetBrains Mono" font-size="11">x₃</text>
+          <!-- Weight labels -->
+          <text x="38" y="58" fill="#ffd60a" font-family="JetBrains Mono" font-size="10">w₁</text>
+          <text x="52" y="86" fill="#ffd60a" font-family="JetBrains Mono" font-size="10">w₂</text>
+          <text x="38" y="122" fill="#ffd60a" font-family="JetBrains Mono" font-size="10">w₃</text>
+          <!-- Neuron circle -->
+          <circle cx="150" cy="90" r="38" fill="#111318" stroke="#00e5ff" stroke-width="2"/>
+          <text x="150" y="86" text-anchor="middle" fill="#00e5ff" font-family="JetBrains Mono" font-size="10">Σwᵢxᵢ</text>
+          <text x="150" y="101" text-anchor="middle" fill="#a855f7" font-family="JetBrains Mono" font-size="10">+ bias</text>
+          <!-- Activation -->
+          <rect x="215" y="72" width="56" height="36" rx="6" fill="#181c24" stroke="#ff6b35" stroke-width="1.5"/>
+          <text x="243" y="86" text-anchor="middle" fill="#ff6b35" font-family="JetBrains Mono" font-size="9">f(x)</text>
+          <text x="243" y="100" text-anchor="middle" fill="#ff6b35" font-family="JetBrains Mono" font-size="9">ReLU</text>
+          <!-- Arrows -->
+          <line x1="188" y1="90" x2="213" y2="90" stroke="#00e5ff" stroke-width="2" marker-end="url(#arrowCyan)"/>
+          <line x1="271" y1="90" x2="308" y2="90" stroke="#00ff88" stroke-width="2" marker-end="url(#arrowGreen)"/>
+          <text x="310" y="93" fill="#00ff88" font-family="JetBrains Mono" font-size="11">ŷ</text>
+          <!-- Bias node -->
+          <circle cx="150" cy="158" r="14" fill="#181c24" stroke="#ffd60a" stroke-width="1.5"/>
+          <text x="150" y="162" text-anchor="middle" fill="#ffd60a" font-family="JetBrains Mono" font-size="10">b</text>
+          <line x1="150" y1="144" x2="150" y2="128" stroke="#ffd60a" stroke-width="1.5" stroke-dasharray="3,3"/>
+          <!-- Arrows defs -->
+          <defs>
+            <marker id="arrowCyan" markerWidth="8" markerHeight="6" refX="6" refY="3" orient="auto">
+              <polygon points="0 0, 8 3, 0 6" fill="#00e5ff"/>
+            </marker>
+            <marker id="arrowGreen" markerWidth="8" markerHeight="6" refX="6" refY="3" orient="auto">
+              <polygon points="0 0, 8 3, 0 6" fill="#00ff88"/>
+            </marker>
+          </defs>
+        </svg>
+      </div>
+
+      <!-- CNN Architecture for MNIST -->
+      <div class="diagram-card">
+        <h3>Diagram 3 — CNN for MNIST</h3>
+        <div class="cnn-layers">
+          <!-- Input -->
+          <div class="cnn-layer">
+            <div class="cnn-block" style="height:90px;background:rgba(0,229,255,0.15);border:1px solid #00e5ff;color:#00e5ff;">28×28</div>
+            <div class="cnn-label">Input<br>1ch</div>
+          </div>
+          <div class="layer-arrow-cnn">→</div>
+          <!-- Conv1 -->
+          <div class="cnn-layer">
+            <div class="cnn-block" style="height:80px;background:rgba(168,85,247,0.15);border:1px solid #a855f7;color:#a855f7;">26×26</div>
+            <div class="cnn-label">Conv2d<br>32ch</div>
+          </div>
+          <div class="layer-arrow-cnn">→</div>
+          <!-- Pool1 -->
+          <div class="cnn-layer">
+            <div class="cnn-block" style="height:65px;background:rgba(255,214,10,0.1);border:1px solid #ffd60a;color:#ffd60a;">13×13</div>
+            <div class="cnn-label">MaxPool<br>2×2</div>
+          </div>
+          <div class="layer-arrow-cnn">→</div>
+          <!-- Conv2 -->
+          <div class="cnn-layer">
+            <div class="cnn-block" style="height:55px;background:rgba(168,85,247,0.2);border:1px solid #a855f7;color:#a855f7;">11×11</div>
+            <div class="cnn-label">Conv2d<br>64ch</div>
+          </div>
+          <div class="layer-arrow-cnn">→</div>
+          <!-- Pool2 -->
+          <div class="cnn-layer">
+            <div class="cnn-block" style="height:40px;background:rgba(255,214,10,0.1);border:1px solid #ffd60a;color:#ffd60a;">5×5</div>
+            <div class="cnn-label">MaxPool<br>2×2</div>
+          </div>
+          <div class="layer-arrow-cnn">→</div>
+          <!-- Flatten -->
+          <div class="cnn-layer">
+            <div class="cnn-block" style="height:100px;background:rgba(255,107,53,0.1);border:1px solid #ff6b35;width:18px;color:#ff6b35;">1600</div>
+            <div class="cnn-label">Flatten</div>
+          </div>
+          <div class="layer-arrow-cnn">→</div>
+          <!-- FC -->
+          <div class="cnn-layer">
+            <div class="cnn-block" style="height:70px;background:rgba(0,255,136,0.1);border:1px solid #00ff88;width:18px;color:#00ff88;">128</div>
+            <div class="cnn-label">Dense<br>ReLU</div>
+          </div>
+          <div class="layer-arrow-cnn">→</div>
+          <!-- Output -->
+          <div class="cnn-layer">
+            <div class="cnn-block" style="height:36px;background:rgba(0,229,255,0.15);border:1px solid #00e5ff;width:18px;color:#00e5ff;">10</div>
+            <div class="cnn-label">Softmax<br>0–9</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. TRAINING LOOP DIAGRAM -->
+    <div class="callout purple">
+      <span class="title">Diagram 4 — Training Loop (Forward + Backward Pass)</span>
+    </div>
+
+    <div class="loop-diagram">
+      <div class="loop-row">
+        <div class="loop-node">Input Batch</div>
+        <div class="loop-arrow-h">→</div>
+        <div class="loop-node">Forward Pass</div>
+        <div class="loop-arrow-h">→</div>
+        <div class="loop-node highlight">Compute Loss</div>
+        <div class="loop-arrow-h">→</div>
+        <div class="loop-node">Backpropagation</div>
+        <div class="loop-arrow-h">→</div>
+        <div class="loop-node highlight2">Update Weights</div>
+      </div>
+      <div class="loop-row-v">
+        <div class="loop-arrow-v" style="color:var(--accent3);font-size:14px;">↑ Repeat for N epochs until loss converges ↑</div>
+      </div>
+    </div>
+
+    <!-- COMPONENTS TABLE -->
+    <div class="callout orange">
+      <span class="title">Table — Key Learning Components Summary</span>
+    </div>
+    <table class="comp-table">
+      <thead>
+        <tr>
+          <th>Component</th>
+          <th>Role</th>
+          <th>MNIST Example</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td class="tag-cell">Training Data</td><td>Labelled examples to learn from</td><td>60,000 greyscale digit images (28×28)</td></tr>
+        <tr><td class="tag-cell">Test Data</td><td>Unseen examples to evaluate generalisation</td><td>10,000 held-out digit images</td></tr>
+        <tr><td class="tag-cell">Features</td><td>Input representation fed to the model</td><td>Pixel intensities (0–255) normalised to [0,1]</td></tr>
+        <tr><td class="tag-cell">Labels</td><td>Ground-truth class assignments</td><td>Integer class 0–9</td></tr>
+        <tr><td class="tag-cell">Model</td><td>Parameterised function f(x;θ)</td><td>Convolutional Neural Network</td></tr>
+        <tr><td class="tag-cell">Loss Function</td><td>Quantifies prediction error</td><td>Cross-Entropy Loss</td></tr>
+        <tr><td class="tag-cell">Optimizer</td><td>Updates parameters to minimise loss</td><td>Adam (lr=0.001)</td></tr>
+        <tr><td class="tag-cell">Activation Fn</td><td>Introduces non-linearity</td><td>ReLU (hidden), Softmax (output)</td></tr>
+        <tr><td class="tag-cell">Regularisation</td><td>Prevents overfitting</td><td>Dropout (p=0.5)</td></tr>
+        <tr><td class="tag-cell">Batch Size</td><td>No. samples per weight update</td><td>64</td></tr>
+        <tr><td class="tag-cell">Epochs</td><td>Full passes over training data</td><td>10</td></tr>
+        <tr><td class="tag-cell">Metrics</td><td>Performance measurement</td><td>Accuracy, Confusion Matrix</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="separator"></div>
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- PART B — CODE                                   -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <div class="part">
+    <div class="section-label">
+      <div class="tag">PART (b)</div>
+      <h2>MNIST Digit Classification — Full Implementation</h2>
+      <div class="line"></div>
+    </div>
+
+    <div class="callout">
+      <span class="title">Implementation Overview</span>
+      Two complete implementations are provided: (1) a PyTorch CNN — the standard deep learning approach achieving ~99% test accuracy, and (2) a scikit-learn multi-algorithm comparison. Both are fully commented. Run either with: <strong style="color:#00e5ff;">python mnist_solution.py</strong>
+    </div>
+
+    <!-- EXPECTED RESULTS -->
+    <div class="results-grid">
+      <div class="result-card green"><span class="val">~99.2%</span><div class="lbl">CNN Accuracy</div></div>
+      <div class="result-card cyan"><span class="val">60k</span><div class="lbl">Training Samples</div></div>
+      <div class="result-card orange"><span class="val">10k</span><div class="lbl">Test Samples</div></div>
+      <div class="result-card purple"><span class="val">10</span><div class="lbl">Output Classes (0–9)</div></div>
+    </div>
+
+    <!-- DIGIT CLASS PREVIEW -->
+    <div class="callout green">
+      <span class="title">MNIST Classes — Digits 0 through 9</span>
+    </div>
+    <div class="digit-grid">
+      <div class="digit-cell" style="color:#00e5ff;">0</div>
+      <div class="digit-cell" style="color:#a855f7;">1</div>
+      <div class="digit-cell" style="color:#ff6b35;">2</div>
+      <div class="digit-cell" style="color:#ffd60a;">3</div>
+      <div class="digit-cell" style="color:#00ff88;">4</div>
+      <div class="digit-cell" style="color:#ff7b72;">5</div>
+      <div class="digit-cell" style="color:#79c0ff;">6</div>
+      <div class="digit-cell" style="color:#f2cc60;">7</div>
+      <div class="digit-cell" style="color:#d2a8ff;">8</div>
+      <div class="digit-cell" style="color:#a5d6ff;">9</div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════ -->
+    <!-- FILE 1: PYTORCH CNN (PRIMARY SOLUTION)         -->
+    <!-- ══════════════════════════════════════════════ -->
+    <div class="code-section">
+      <div class="code-header">
+        <div class="filename">
+          <div class="dots">
+            <div class="dot" style="background:#ff5f57;"></div>
+            <div class="dot" style="background:#febc2e;"></div>
+            <div class="dot" style="background:#28c840;"></div>
+          </div>
+          📄 mnist_cnn_pytorch.py
+        </div>
+        <div class="lang-tag">Python · PyTorch</div>
+      </div>
+      <pre><span class="cm"># ============================================================
+#  MNIST DIGIT CLASSIFICATION — PyTorch CNN Implementation
+#  Classifies handwritten digits 0–9 from the MNIST dataset
+#  Expected accuracy: ~99.2% on test set after 10 epochs
+# ============================================================</span>
+
+<span class="cm"># ── Install once if needed ──────────────────────────────────
+#  pip install torch torchvision matplotlib seaborn scikit-learn
+# ────────────────────────────────────────────────────────────</span>
+
+<span class="kw">import</span> <span class="cls">torch</span>
+<span class="kw">import</span> <span class="cls">torch.nn</span> <span class="kw">as</span> <span class="var">nn</span>
+<span class="kw">import</span> <span class="cls">torch.optim</span> <span class="kw">as</span> <span class="var">optim</span>
+<span class="kw">import</span> <span class="cls">torch.nn.functional</span> <span class="kw">as</span> <span class="var">F</span>
+<span class="kw">from</span> <span class="cls">torch.utils.data</span> <span class="kw">import</span> <span class="cls">DataLoader</span>
+<span class="kw">from</span> <span class="cls">torchvision</span> <span class="kw">import</span> <span class="cls">datasets</span>, <span class="cls">transforms</span>
+<span class="kw">import</span> <span class="cls">matplotlib.pyplot</span> <span class="kw">as</span> <span class="var">plt</span>
+<span class="kw">import</span> <span class="cls">seaborn</span> <span class="kw">as</span> <span class="var">sns</span>
+<span class="kw">from</span> <span class="cls">sklearn.metrics</span> <span class="kw">import</span> <span class="fn">confusion_matrix</span>, <span class="fn">classification_report</span>
+<span class="kw">import</span> <span class="cls">numpy</span> <span class="kw">as</span> <span class="var">np</span>
+
+<span class="cm"># ── 1. HYPERPARAMETERS ──────────────────────────────────────</span>
+<span class="var">BATCH_SIZE</span>   <span class="op">=</span> <span class="num">64</span>      <span class="cm"># samples processed per weight update</span>
+<span class="var">EPOCHS</span>       <span class="op">=</span> <span class="num">10</span>      <span class="cm"># full passes over training data</span>
+<span class="var">LEARNING_RATE</span><span class="op">=</span> <span class="num">0.001</span>   <span class="cm"># Adam optimizer step size</span>
+<span class="var">DROPOUT_RATE</span> <span class="op">=</span> <span class="num">0.5</span>     <span class="cm"># fraction of neurons dropped for regularisation</span>
+
+<span class="cm"># Automatically use GPU (CUDA/MPS) if available, else CPU</span>
+<span class="var">DEVICE</span> <span class="op">=</span> (
+    <span class="str">"cuda"</span>  <span class="kw">if</span> <span class="cls">torch</span>.<span class="fn">cuda</span>.<span class="fn">is_available</span>()
+    <span class="kw">else</span> <span class="str">"mps"</span> <span class="kw">if</span> <span class="cls">torch</span>.<span class="fn">backends</span>.<span class="fn">mps</span>.<span class="fn">is_available</span>()
+    <span class="kw">else</span> <span class="str">"cpu"</span>
+)
+<span class="fn">print</span>(<span class="str">f"Using device: {DEVICE}"</span>)
+
+
+<span class="cm"># ── 2. DATA LOADING & PREPROCESSING ────────────────────────</span>
+<span class="cm"># Define transforms: convert PIL images to tensors, normalise</span>
+<span class="cm"># to mean=0.1307, std=0.3081 (precomputed MNIST statistics)</span>
+<span class="var">transform</span> <span class="op">=</span> <span class="cls">transforms</span>.<span class="cls">Compose</span>([
+    <span class="cls">transforms</span>.<span class="cls">ToTensor</span>(),                         <span class="cm"># PIL → [0,1] tensor</span>
+    <span class="cls">transforms</span>.<span class="cls">Normalize</span>((<span class="num">0.1307</span>,), (<span class="num">0.3081</span>,)),  <span class="cm"># standardise pixels</span>
+])
+
+<span class="cm"># Download MNIST: 60,000 training + 10,000 test 28×28 greyscale images</span>
+<span class="var">train_dataset</span> <span class="op">=</span> <span class="cls">datasets</span>.<span class="cls">MNIST</span>(
+    root<span class="op">=</span><span class="str">'./data'</span>, train<span class="op">=</span><span class="kw">True</span>,
+    download<span class="op">=</span><span class="kw">True</span>, transform<span class="op">=</span><span class="var">transform</span>
+)
+<span class="var">test_dataset</span> <span class="op">=</span> <span class="cls">datasets</span>.<span class="cls">MNIST</span>(
+    root<span class="op">=</span><span class="str">'./data'</span>, train<span class="op">=</span><span class="kw">False</span>,
+    download<span class="op">=</span><span class="kw">True</span>, transform<span class="op">=</span><span class="var">transform</span>
+)
+
+<span class="cm"># DataLoaders: batch, shuffle training data each epoch</span>
+<span class="var">train_loader</span> <span class="op">=</span> <span class="cls">DataLoader</span>(<span class="var">train_dataset</span>, batch_size<span class="op">=</span><span class="var">BATCH_SIZE</span>,
+                           shuffle<span class="op">=</span><span class="kw">True</span>,  num_workers<span class="op">=</span><span class="num">2</span>)
+<span class="var">test_loader</span>  <span class="op">=</span> <span class="cls">DataLoader</span>(<span class="var">test_dataset</span>,  batch_size<span class="op">=</span><span class="num">1000</span>,
+                           shuffle<span class="op">=</span><span class="kw">False</span>, num_workers<span class="op">=</span><span class="num">2</span>)
+
+<span class="fn">print</span>(<span class="str">f"Training samples : {len(train_dataset):,}"</span>)
+<span class="fn">print</span>(<span class="str">f"Test samples     : {len(test_dataset):,}"</span>)
+<span class="fn">print</span>(<span class="str">f"Classes          : {train_dataset.classes}"</span>)
+
+
+<span class="cm"># ── 3. CONVOLUTIONAL NEURAL NETWORK ARCHITECTURE ───────────</span>
+<span class="kw">class</span> <span class="cls">MNISTConvNet</span>(<span class="cls">nn.Module</span>):
+    <span class="str">"""
+    CNN for MNIST digit classification.
+
+    Architecture:
+        Input  : (N, 1, 28, 28)  — batch of greyscale images
+        Conv1  : 32 filters 3×3 → ReLU → MaxPool 2×2 → (N,32,13,13)
+        Conv2  : 64 filters 3×3 → ReLU → MaxPool 2×2 → (N,64, 5, 5)
+        Flatten: (N, 64*5*5) = (N, 1600)
+        FC1    : 1600 → 128  → ReLU → Dropout(0.5)
+        FC2    : 128  →  10  → LogSoftmax (10 digit classes)
+    """</span>
+
+    <span class="kw">def</span> <span class="fn">__init__</span>(<span class="cls">self</span>):
+        <span class="fn">super</span>(<span class="cls">MNISTConvNet</span>, <span class="cls">self</span>).<span class="fn">__init__</span>()
+
+        <span class="cm"># ── Convolutional block 1 ──────────────────────────────</span>
+        <span class="cm"># 1 input channel (greyscale), 32 output feature maps, 3×3 kernel</span>
+        <span class="cls">self</span>.<span class="var">conv1</span> <span class="op">=</span> <span class="cls">nn.Conv2d</span>(
+            in_channels<span class="op">=</span><span class="num">1</span>, out_channels<span class="op">=</span><span class="num">32</span>,
+            kernel_size<span class="op">=</span><span class="num">3</span>, stride<span class="op">=</span><span class="num">1</span>, padding<span class="op">=</span><span class="num">0</span>
+        )
+        <span class="cm"># Batch normalisation stabilises activations during training</span>
+        <span class="cls">self</span>.<span class="var">bn1</span> <span class="op">=</span> <span class="cls">nn.BatchNorm2d</span>(<span class="num">32</span>)
+
+        <span class="cm"># ── Convolutional block 2 ──────────────────────────────</span>
+        <span class="cm"># 32 → 64 feature maps, extracts higher-level features</span>
+        <span class="cls">self</span>.<span class="var">conv2</span> <span class="op">=</span> <span class="cls">nn.Conv2d</span>(
+            in_channels<span class="op">=</span><span class="num">32</span>, out_channels<span class="op">=</span><span class="num">64</span>,
+            kernel_size<span class="op">=</span><span class="num">3</span>, stride<span class="op">=</span><span class="num">1</span>, padding<span class="op">=</span><span class="num">0</span>
+        )
+        <span class="cls">self</span>.<span class="var">bn2</span> <span class="op">=</span> <span class="cls">nn.BatchNorm2d</span>(<span class="num">64</span>)
+
+        <span class="cm"># ── Max pooling: halves spatial dimensions ─────────────</span>
+        <span class="cls">self</span>.<span class="var">pool</span> <span class="op">=</span> <span class="cls">nn.MaxPool2d</span>(kernel_size<span class="op">=</span><span class="num">2</span>, stride<span class="op">=</span><span class="num">2</span>)
+
+        <span class="cm"># ── Dropout: randomly zeros neurons to prevent overfitting</span>
+        <span class="cls">self</span>.<span class="var">dropout</span> <span class="op">=</span> <span class="cls">nn.Dropout</span>(<span class="var">DROPOUT_RATE</span>)
+
+        <span class="cm"># ── Fully connected layers ─────────────────────────────</span>
+        <span class="cm"># After 2×pool on 28×28: 28→13→5, so 64*5*5 = 1600</span>
+        <span class="cls">self</span>.<span class="var">fc1</span> <span class="op">=</span> <span class="cls">nn.Linear</span>(<span class="num">64</span> <span class="op">*</span> <span class="num">5</span> <span class="op">*</span> <span class="num">5</span>, <span class="num">128</span>)
+        <span class="cls">self</span>.<span class="var">fc2</span> <span class="op">=</span> <span class="cls">nn.Linear</span>(<span class="num">128</span>, <span class="num">10</span>)  <span class="cm"># 10 output classes</span>
+
+    <span class="kw">def</span> <span class="fn">forward</span>(<span class="cls">self</span>, <span class="var">x</span>):
+        <span class="str">"""
+        Forward pass: define computation graph.
+        x shape: (batch_size, 1, 28, 28)
+        """</span>
+        <span class="cm"># ── Block 1: Conv → BN → ReLU → MaxPool ───────────────</span>
+        <span class="var">x</span> <span class="op">=</span> <span class="cls">self</span>.<span class="var">pool</span>(<span class="var">F</span>.<span class="fn">relu</span>(<span class="cls">self</span>.<span class="var">bn1</span>(<span class="cls">self</span>.<span class="var">conv1</span>(<span class="var">x</span>))))
+        <span class="cm"># output: (N, 32, 13, 13)</span>
+
+        <span class="cm"># ── Block 2: Conv → BN → ReLU → MaxPool ───────────────</span>
+        <span class="var">x</span> <span class="op">=</span> <span class="cls">self</span>.<span class="var">pool</span>(<span class="var">F</span>.<span class="fn">relu</span>(<span class="cls">self</span>.<span class="var">bn2</span>(<span class="cls">self</span>.<span class="var">conv2</span>(<span class="var">x</span>))))
+        <span class="cm"># output: (N, 64, 5, 5)</span>
+
+        <span class="cm"># ── Flatten to 1D feature vector ───────────────────────</span>
+        <span class="var">x</span> <span class="op">=</span> <span class="var">x</span>.<span class="fn">view</span>(<span class="var">x</span>.<span class="fn">size</span>(<span class="num">0</span>), <span class="op">-</span><span class="num">1</span>)
+        <span class="cm"># output: (N, 1600)</span>
+
+        <span class="cm"># ── Fully connected → ReLU → Dropout ──────────────────</span>
+        <span class="var">x</span> <span class="op">=</span> <span class="cls">self</span>.<span class="var">dropout</span>(<span class="var">F</span>.<span class="fn">relu</span>(<span class="cls">self</span>.<span class="var">fc1</span>(<span class="var">x</span>)))
+        <span class="cm"># output: (N, 128)</span>
+
+        <span class="cm"># ── Output layer: 10 logits (raw scores per class) ────</span>
+        <span class="var">x</span> <span class="op">=</span> <span class="cls">self</span>.<span class="var">fc2</span>(<span class="var">x</span>)
+        <span class="cm"># output: (N, 10) — pass to cross-entropy loss</span>
+        <span class="kw">return</span> <span class="var">x</span>
+
+
+<span class="cm"># ── 4. INITIALISE MODEL, LOSS, OPTIMIZER ────────────────────</span>
+<span class="var">model</span>     <span class="op">=</span> <span class="cls">MNISTConvNet</span>().<span class="fn">to</span>(<span class="var">DEVICE</span>)    <span class="cm"># move to GPU/CPU</span>
+<span class="var">criterion</span> <span class="op">=</span> <span class="cls">nn.CrossEntropyLoss</span>()         <span class="cm"># combines Softmax + NLLLoss</span>
+<span class="var">optimizer</span> <span class="op">=</span> <span class="cls">optim.Adam</span>(
+    <span class="var">model</span>.<span class="fn">parameters</span>(), lr<span class="op">=</span><span class="var">LEARNING_RATE</span>
+)
+<span class="cm"># LR scheduler: reduce LR by ×0.1 if val loss plateaus 3 epochs</span>
+<span class="var">scheduler</span> <span class="op">=</span> <span class="cls">optim.lr_scheduler.ReduceLROnPlateau</span>(
+    <span class="var">optimizer</span>, mode<span class="op">=</span><span class="str">'min'</span>, factor<span class="op">=</span><span class="num">0.1</span>, patience<span class="op">=</span><span class="num">3</span>
+)
+
+<span class="cm"># Print model parameter count</span>
+<span class="var">total_params</span> <span class="op">=</span> <span class="fn">sum</span>(<span class="var">p</span>.<span class="fn">numel</span>() <span class="kw">for</span> <span class="var">p</span> <span class="kw">in</span> <span class="var">model</span>.<span class="fn">parameters</span>())
+<span class="fn">print</span>(<span class="str">f"\nModel parameters: {total_params:,}"</span>)
+<span class="fn">print</span>(<span class="var">model</span>)
+
+
+<span class="cm"># ── 5. TRAINING FUNCTION ─────────────────────────────────────</span>
+<span class="kw">def</span> <span class="fn">train_epoch</span>(<span class="var">model</span>, <span class="var">loader</span>, <span class="var">criterion</span>, <span class="var">optimizer</span>, <span class="var">device</span>):
+    <span class="str">"""
+    Run one full pass over the training data.
+    Returns: average loss, accuracy for this epoch.
+    """</span>
+    <span class="var">model</span>.<span class="fn">train</span>()           <span class="cm"># enable dropout, batch norm in training mode</span>
+    <span class="var">running_loss</span> <span class="op">=</span> <span class="num">0.0</span>
+    <span class="var">correct</span> <span class="op">=</span> <span class="var">total</span> <span class="op">=</span> <span class="num">0</span>
+
+    <span class="kw">for</span> <span class="var">batch_idx</span>, (<span class="var">images</span>, <span class="var">labels</span>) <span class="kw">in</span> <span class="fn">enumerate</span>(<span class="var">loader</span>):
+        <span class="var">images</span>, <span class="var">labels</span> <span class="op">=</span> <span class="var">images</span>.<span class="fn">to</span>(<span class="var">device</span>), <span class="var">labels</span>.<span class="fn">to</span>(<span class="var">device</span>)
+
+        <span class="cm"># ① Zero gradients accumulated from previous batch</span>
+        <span class="var">optimizer</span>.<span class="fn">zero_grad</span>()
+
+        <span class="cm"># ② Forward pass: compute predictions</span>
+        <span class="var">outputs</span> <span class="op">=</span> <span class="var">model</span>(<span class="var">images</span>)          <span class="cm"># shape: (64, 10)</span>
+
+        <span class="cm"># ③ Compute cross-entropy loss</span>
+        <span class="var">loss</span> <span class="op">=</span> <span class="fn">criterion</span>(<span class="var">outputs</span>, <span class="var">labels</span>)
+
+        <span class="cm"># ④ Backward pass: compute gradients via backpropagation</span>
+        <span class="var">loss</span>.<span class="fn">backward</span>()
+
+        <span class="cm"># ⑤ Gradient clipping: prevents exploding gradients</span>
+        <span class="cls">nn.utils.clip_grad_norm_</span>(<span class="var">model</span>.<span class="fn">parameters</span>(), max_norm<span class="op">=</span><span class="num">1.0</span>)
+
+        <span class="cm"># ⑥ Optimizer step: update weights using gradients</span>
+        <span class="var">optimizer</span>.<span class="fn">step</span>()
+
+        <span class="cm"># Accumulate metrics</span>
+        <span class="var">running_loss</span> <span class="op">+=</span> <span class="var">loss</span>.<span class="fn">item</span>() <span class="op">*</span> <span class="var">images</span>.<span class="fn">size</span>(<span class="num">0</span>)
+        <span class="var">_</span>, <span class="var">predicted</span> <span class="op">=</span> <span class="cls">torch</span>.<span class="fn">max</span>(<span class="var">outputs</span>, <span class="num">1</span>)
+        <span class="var">total</span>   <span class="op">+=</span> <span class="var">labels</span>.<span class="fn">size</span>(<span class="num">0</span>)
+        <span class="var">correct</span> <span class="op">+=</span> (<span class="var">predicted</span> <span class="op">==</span> <span class="var">labels</span>).<span class="fn">sum</span>().<span class="fn">item</span>()
+
+    <span class="var">epoch_loss</span> <span class="op">=</span> <span class="var">running_loss</span> <span class="op">/</span> <span class="fn">len</span>(<span class="var">loader</span>.<span class="var">dataset</span>)
+    <span class="var">epoch_acc</span>  <span class="op">=</span> <span class="num">100.0</span> <span class="op">*</span> <span class="var">correct</span> <span class="op">/</span> <span class="var">total</span>
+    <span class="kw">return</span> <span class="var">epoch_loss</span>, <span class="var">epoch_acc</span>
+
+
+<span class="cm"># ── 6. EVALUATION FUNCTION ───────────────────────────────────</span>
+<span class="kw">def</span> <span class="fn">evaluate</span>(<span class="var">model</span>, <span class="var">loader</span>, <span class="var">criterion</span>, <span class="var">device</span>):
+    <span class="str">"""
+    Evaluate model on a DataLoader (validation or test).
+    Returns: loss, accuracy, all predictions, all true labels.
+    """</span>
+    <span class="var">model</span>.<span class="fn">eval</span>()            <span class="cm"># disable dropout; use running BN stats</span>
+    <span class="var">running_loss</span> <span class="op">=</span> <span class="num">0.0</span>
+    <span class="var">correct</span> <span class="op">=</span> <span class="var">total</span> <span class="op">=</span> <span class="num">0</span>
+    <span class="var">all_preds</span> <span class="op">=</span> []
+    <span class="var">all_labels</span> <span class="op">=</span> []
+
+    <span class="kw">with</span> <span class="cls">torch</span>.<span class="fn">no_grad</span>():     <span class="cm"># disable gradient computation for speed</span>
+        <span class="kw">for</span> <span class="var">images</span>, <span class="var">labels</span> <span class="kw">in</span> <span class="var">loader</span>:
+            <span class="var">images</span>, <span class="var">labels</span> <span class="op">=</span> <span class="var">images</span>.<span class="fn">to</span>(<span class="var">device</span>), <span class="var">labels</span>.<span class="fn">to</span>(<span class="var">device</span>)
+            <span class="var">outputs</span> <span class="op">=</span> <span class="var">model</span>(<span class="var">images</span>)
+            <span class="var">loss</span>    <span class="op">=</span> <span class="fn">criterion</span>(<span class="var">outputs</span>, <span class="var">labels</span>)
+
+            <span class="var">running_loss</span> <span class="op">+=</span> <span class="var">loss</span>.<span class="fn">item</span>() <span class="op">*</span> <span class="var">images</span>.<span class="fn">size</span>(<span class="num">0</span>)
+            <span class="var">_</span>, <span class="var">predicted</span> <span class="op">=</span> <span class="cls">torch</span>.<span class="fn">max</span>(<span class="var">outputs</span>, <span class="num">1</span>)
+            <span class="var">total</span>   <span class="op">+=</span> <span class="var">labels</span>.<span class="fn">size</span>(<span class="num">0</span>)
+            <span class="var">correct</span> <span class="op">+=</span> (<span class="var">predicted</span> <span class="op">==</span> <span class="var">labels</span>).<span class="fn">sum</span>().<span class="fn">item</span>()
+            <span class="var">all_preds</span>.<span class="fn">extend</span>(<span class="var">predicted</span>.<span class="fn">cpu</span>().<span class="fn">numpy</span>())
+            <span class="var">all_labels</span>.<span class="fn">extend</span>(<span class="var">labels</span>.<span class="fn">cpu</span>().<span class="fn">numpy</span>())
+
+    <span class="var">epoch_loss</span> <span class="op">=</span> <span class="var">running_loss</span> <span class="op">/</span> <span class="fn">len</span>(<span class="var">loader</span>.<span class="var">dataset</span>)
+    <span class="var">epoch_acc</span>  <span class="op">=</span> <span class="num">100.0</span> <span class="op">*</span> <span class="var">correct</span> <span class="op">/</span> <span class="var">total</span>
+    <span class="kw">return</span> <span class="var">epoch_loss</span>, <span class="var">epoch_acc</span>, <span class="var">all_preds</span>, <span class="var">all_labels</span>
+
+
+<span class="cm"># ── 7. MAIN TRAINING LOOP ────────────────────────────────────</span>
+<span class="var">history</span> <span class="op">=</span> {<span class="str">'train_loss'</span>: [], <span class="str">'train_acc'</span>: [],
+           <span class="str">'test_loss'</span>: [],  <span class="str">'test_acc'</span>: []}
+
+<span class="fn">print</span>(<span class="str">"\n{'='*60}"</span>)
+<span class="fn">print</span>(<span class="str">"  TRAINING STARTED"</span>)
+<span class="fn">print</span>(<span class="str">"{'='*60}"</span>)
+
+<span class="kw">for</span> <span class="var">epoch</span> <span class="kw">in</span> <span class="fn">range</span>(<span class="num">1</span>, <span class="var">EPOCHS</span> <span class="op">+</span> <span class="num">1</span>):
+    <span class="cm"># Train one epoch</span>
+    <span class="var">tr_loss</span>, <span class="var">tr_acc</span> <span class="op">=</span> <span class="fn">train_epoch</span>(
+        <span class="var">model</span>, <span class="var">train_loader</span>, <span class="var">criterion</span>, <span class="var">optimizer</span>, <span class="var">DEVICE</span>
+    )
+
+    <span class="cm"># Evaluate on test set</span>
+    <span class="var">te_loss</span>, <span class="var">te_acc</span>, <span class="var">_</span>, <span class="var">_</span> <span class="op">=</span> <span class="fn">evaluate</span>(
+        <span class="var">model</span>, <span class="var">test_loader</span>, <span class="var">criterion</span>, <span class="var">DEVICE</span>
+    )
+
+    <span class="cm"># Step learning rate scheduler</span>
+    <span class="var">scheduler</span>.<span class="fn">step</span>(<span class="var">te_loss</span>)
+
+    <span class="cm"># Store history for plotting</span>
+    <span class="var">history</span>[<span class="str">'train_loss'</span>].<span class="fn">append</span>(<span class="var">tr_loss</span>)
+    <span class="var">history</span>[<span class="str">'train_acc'</span>].<span class="fn">append</span>(<span class="var">tr_acc</span>)
+    <span class="var">history</span>[<span class="str">'test_loss'</span>].<span class="fn">append</span>(<span class="var">te_loss</span>)
+    <span class="var">history</span>[<span class="str">'test_acc'</span>].<span class="fn">append</span>(<span class="var">te_acc</span>)
+
+    <span class="fn">print</span>(
+        <span class="str">f"Epoch [{epoch:02d}/{EPOCHS}] "</span>
+        <span class="str">f"Train Loss: {tr_loss:.4f} Acc: {tr_acc:.2f}% | "</span>
+        <span class="str">f"Test  Loss: {te_loss:.4f} Acc: {te_acc:.2f}%"</span>
+    )
+
+<span class="fn">print</span>(<span class="str">"\nTraining complete!"</span>)
+
+
+<span class="cm"># ── 8. FINAL EVALUATION & METRICS ───────────────────────────</span>
+<span class="var">_</span>, <span class="var">final_acc</span>, <span class="var">preds</span>, <span class="var">labels</span> <span class="op">=</span> <span class="fn">evaluate</span>(
+    <span class="var">model</span>, <span class="var">test_loader</span>, <span class="var">criterion</span>, <span class="var">DEVICE</span>
+)
+<span class="fn">print</span>(<span class="str">f"\n{'='*40}"</span>)
+<span class="fn">print</span>(<span class="str">f"  FINAL TEST ACCURACY: {final_acc:.2f}%"</span>)
+<span class="fn">print</span>(<span class="str">f"{'='*40}\n"</span>)
+
+<span class="cm"># Per-class precision, recall, F1-score</span>
+<span class="fn">print</span>(<span class="fn">classification_report</span>(
+    <span class="var">labels</span>, <span class="var">preds</span>,
+    target_names<span class="op">=</span>[<span class="str">f'Digit {i}'</span> <span class="kw">for</span> <span class="var">i</span> <span class="kw">in</span> <span class="fn">range</span>(<span class="num">10</span>)]
+))
+
+
+<span class="cm"># ── 9. VISUALISATIONS ────────────────────────────────────────</span>
+<span class="var">fig</span>, <span class="var">axes</span> <span class="op">=</span> <span class="var">plt</span>.<span class="fn">subplots</span>(<span class="num">1</span>, <span class="num">3</span>, figsize<span class="op">=</span>(<span class="num">18</span>, <span class="num">5</span>))
+
+<span class="cm"># (a) Training/Test Loss Curve</span>
+<span class="var">axes</span>[<span class="num">0</span>].<span class="fn">plot</span>(<span class="var">history</span>[<span class="str">'train_loss'</span>], label<span class="op">=</span><span class="str">'Train Loss'</span>, color<span class="op">=</span><span class="str">'#4dabf7'</span>)
+<span class="var">axes</span>[<span class="num">0</span>].<span class="fn">plot</span>(<span class="var">history</span>[<span class="str">'test_loss'</span>],  label<span class="op">=</span><span class="str">'Test Loss'</span>,  color<span class="op">=</span><span class="str">'#ff6b6b'</span>)
+<span class="var">axes</span>[<span class="num">0</span>].<span class="fn">set_title</span>(<span class="str">'Loss Curve'</span>); <span class="var">axes</span>[<span class="num">0</span>].<span class="fn">set_xlabel</span>(<span class="str">'Epoch'</span>)
+<span class="var">axes</span>[<span class="num">0</span>].<span class="fn">set_ylabel</span>(<span class="str">'Cross-Entropy Loss'</span>); <span class="var">axes</span>[<span class="num">0</span>].<span class="fn">legend</span>()
+
+<span class="cm"># (b) Training/Test Accuracy Curve</span>
+<span class="var">axes</span>[<span class="num">1</span>].<span class="fn">plot</span>(<span class="var">history</span>[<span class="str">'train_acc'</span>], label<span class="op">=</span><span class="str">'Train Acc'</span>, color<span class="op">=</span><span class="str">'#4dabf7'</span>)
+<span class="var">axes</span>[<span class="num">1</span>].<span class="fn">plot</span>(<span class="var">history</span>[<span class="str">'test_acc'</span>],  label<span class="op">=</span><span class="str">'Test Acc'</span>,  color<span class="op">=</span><span class="str">'#ff6b6b'</span>)
+<span class="var">axes</span>[<span class="num">1</span>].<span class="fn">set_title</span>(<span class="str">'Accuracy Curve'</span>); <span class="var">axes</span>[<span class="num">1</span>].<span class="fn">set_xlabel</span>(<span class="str">'Epoch'</span>)
+<span class="var">axes</span>[<span class="num">1</span>].<span class="fn">set_ylabel</span>(<span class="str">'Accuracy (%)'</span>); <span class="var">axes</span>[<span class="num">1</span>].<span class="fn">legend</span>()
+
+<span class="cm"># (c) Confusion Matrix</span>
+<span class="var">cm</span> <span class="op">=</span> <span class="fn">confusion_matrix</span>(<span class="var">labels</span>, <span class="var">preds</span>)
+<span class="var">sns</span>.<span class="fn">heatmap</span>(<span class="var">cm</span>, annot<span class="op">=</span><span class="kw">True</span>, fmt<span class="op">=</span><span class="str">'d'</span>, cmap<span class="op">=</span><span class="str">'Blues'</span>,
+            ax<span class="op">=</span><span class="var">axes</span>[<span class="num">2</span>],
+            xticklabels<span class="op">=</span><span class="fn">range</span>(<span class="num">10</span>), yticklabels<span class="op">=</span><span class="fn">range</span>(<span class="num">10</span>))
+<span class="var">axes</span>[<span class="num">2</span>].<span class="fn">set_title</span>(<span class="str">'Confusion Matrix'</span>)
+<span class="var">axes</span>[<span class="num">2</span>].<span class="fn">set_xlabel</span>(<span class="str">'Predicted'</span>); <span class="var">axes</span>[<span class="num">2</span>].<span class="fn">set_ylabel</span>(<span class="str">'True'</span>)
+
+<span class="var">plt</span>.<span class="fn">tight_layout</span>()
+<span class="var">plt</span>.<span class="fn">savefig</span>(<span class="str">'mnist_results.png'</span>, dpi<span class="op">=</span><span class="num">150</span>)
+<span class="var">plt</span>.<span class="fn">show</span>()
+
+
+<span class="cm"># ── 10. VISUALISE SAMPLE PREDICTIONS ────────────────────────</span>
+<span class="kw">def</span> <span class="fn">visualise_predictions</span>(<span class="var">model</span>, <span class="var">dataset</span>, <span class="var">device</span>, <span class="var">n</span><span class="op">=</span><span class="num">20</span>):
+    <span class="str">"""Show n sample images with predicted vs true labels."""</span>
+    <span class="var">model</span>.<span class="fn">eval</span>()
+    <span class="var">fig</span>, <span class="var">axes</span> <span class="op">=</span> <span class="var">plt</span>.<span class="fn">subplots</span>(<span class="num">2</span>, <span class="num">10</span>, figsize<span class="op">=</span>(<span class="num">20</span>, <span class="num">4</span>))
+
+    <span class="kw">with</span> <span class="cls">torch</span>.<span class="fn">no_grad</span>():
+        <span class="kw">for</span> <span class="var">i</span>, <span class="var">ax</span> <span class="kw">in</span> <span class="fn">enumerate</span>(<span class="var">axes</span>.<span class="fn">flat</span>):
+            <span class="var">img</span>, <span class="var">true_label</span> <span class="op">=</span> <span class="var">dataset</span>[<span class="var">i</span>]
+            <span class="var">output</span>       <span class="op">=</span> <span class="var">model</span>(<span class="var">img</span>.<span class="fn">unsqueeze</span>(<span class="num">0</span>).<span class="fn">to</span>(<span class="var">device</span>))
+            <span class="var">pred_label</span>   <span class="op">=</span> <span class="var">output</span>.<span class="fn">argmax</span>(<span class="num">1</span>).<span class="fn">item</span>()
+            <span class="var">confidence</span>   <span class="op">=</span> <span class="cls">torch</span>.<span class="fn">softmax</span>(<span class="var">output</span>, <span class="num">1</span>).<span class="fn">max</span>().<span class="fn">item</span>() <span class="op">*</span> <span class="num">100</span>
+
+            <span class="var">ax</span>.<span class="fn">imshow</span>(<span class="var">img</span>.<span class="fn">squeeze</span>(), cmap<span class="op">=</span><span class="str">'gray'</span>)
+            <span class="var">color</span> <span class="op">=</span> <span class="str">'green'</span> <span class="kw">if</span> <span class="var">pred_label</span> <span class="op">==</span> <span class="var">true_label</span> <span class="kw">else</span> <span class="str">'red'</span>
+            <span class="var">ax</span>.<span class="fn">set_title</span>(
+                <span class="str">f"P:{pred_label} T:{true_label}\n{confidence:.1f}%"</span>,
+                fontsize<span class="op">=</span><span class="num">8</span>, color<span class="op">=</span><span class="var">color</span>
+            )
+            <span class="var">ax</span>.<span class="fn">axis</span>(<span class="str">'off'</span>)
+
+    <span class="var">plt</span>.<span class="fn">suptitle</span>(<span class="str">'Sample Predictions (Green=Correct, Red=Wrong)'</span>)
+    <span class="var">plt</span>.<span class="fn">tight_layout</span>()
+    <span class="var">plt</span>.<span class="fn">savefig</span>(<span class="str">'sample_predictions.png'</span>, dpi<span class="op">=</span><span class="num">150</span>)
+    <span class="var">plt</span>.<span class="fn">show</span>()
+
+<span class="fn">visualise_predictions</span>(<span class="var">model</span>, <span class="var">test_dataset</span>, <span class="var">DEVICE</span>)
+
+
+<span class="cm"># ── 11. SAVE MODEL ────────────────────────────────────────────</span>
+<span class="cls">torch</span>.<span class="fn">save</span>({
+    <span class="str">'epoch'</span>:      <span class="var">EPOCHS</span>,
+    <span class="str">'model_state'</span>: <span class="var">model</span>.<span class="fn">state_dict</span>(),
+    <span class="str">'optim_state'</span>: <span class="var">optimizer</span>.<span class="fn">state_dict</span>(),
+    <span class="str">'accuracy'</span>:   <span class="var">final_acc</span>,
+}, <span class="str">'mnist_cnn.pth'</span>)
+
+<span class="fn">print</span>(<span class="str">"Model saved → mnist_cnn.pth"</span>)
+
+
+<span class="cm"># ── 12. INFERENCE ON A SINGLE IMAGE ──────────────────────────</span>
+<span class="kw">def</span> <span class="fn">predict_single</span>(<span class="var">model</span>, <span class="var">image_tensor</span>, <span class="var">device</span>):
+    <span class="str">"""
+    Classify a single 28×28 image.
+    Returns predicted digit and per-class probabilities.
+    """</span>
+    <span class="var">model</span>.<span class="fn">eval</span>()
+    <span class="kw">with</span> <span class="cls">torch</span>.<span class="fn">no_grad</span>():
+        <span class="var">out</span>   <span class="op">=</span> <span class="var">model</span>(<span class="var">image_tensor</span>.<span class="fn">unsqueeze</span>(<span class="num">0</span>).<span class="fn">to</span>(<span class="var">device</span>))
+        <span class="var">probs</span> <span class="op">=</span> <span class="cls">torch</span>.<span class="fn">softmax</span>(<span class="var">out</span>, <span class="num">1</span>).<span class="fn">cpu</span>().<span class="fn">numpy</span>()[<span class="num">0</span>]
+        <span class="var">digit</span> <span class="op">=</span> <span class="var">probs</span>.<span class="fn">argmax</span>()
+    <span class="kw">return</span> <span class="var">digit</span>, <span class="var">probs</span>
+
+<span class="cm"># Example: predict first test image</span>
+<span class="var">sample_img</span>, <span class="var">sample_label</span> <span class="op">=</span> <span class="var">test_dataset</span>[<span class="num">0</span>]
+<span class="var">pred_digit</span>, <span class="var">probs</span> <span class="op">=</span> <span class="fn">predict_single</span>(<span class="var">model</span>, <span class="var">sample_img</span>, <span class="var">DEVICE</span>)
+<span class="fn">print</span>(<span class="str">f"\nSingle inference → Predicted: {pred_digit}, True: {sample_label}"</span>)
+<span class="fn">print</span>(<span class="str">"Class probabilities:"</span>)
+<span class="kw">for</span> <span class="var">i</span>, <span class="var">p</span> <span class="kw">in</span> <span class="fn">enumerate</span>(<span class="var">probs</span>):
+    <span class="fn">print</span>(<span class="str">f"  Digit {i}: {p*100:5.2f}%"</span>)
+</pre>
+    </div>
+
+    <!-- SKLEARN COMPARISON -->
+    <div class="callout orange">
+      <span class="title">BONUS — Multi-Algorithm Comparison (scikit-learn)</span>
+      For completeness, the following compares multiple classical ML algorithms on MNIST. Demonstrates that "many algorithms are used" for pattern classification — as the question states.
+    </div>
+
+    <div class="code-section">
+      <div class="code-header">
+        <div class="filename">
+          <div class="dots">
+            <div class="dot" style="background:#ff5f57;"></div>
+            <div class="dot" style="background:#febc2e;"></div>
+            <div class="dot" style="background:#28c840;"></div>
+          </div>
+          📄 mnist_multi_algorithm.py
+        </div>
+        <div class="lang-tag">Python · scikit-learn</div>
+      </div>
+      <pre><span class="cm"># ============================================================
+#  MNIST — Multi-Algorithm Comparison (scikit-learn)
+#  Demonstrates that many ML algorithms can classify digits.
+#  Uses a 10k subset for speed; full dataset for best results.
+# ============================================================</span>
+
+<span class="kw">import</span> <span class="cls">numpy</span> <span class="kw">as</span> <span class="var">np</span>
+<span class="kw">import</span> <span class="cls">matplotlib.pyplot</span> <span class="kw">as</span> <span class="var">plt</span>
+<span class="kw">from</span> <span class="cls">sklearn.datasets</span>        <span class="kw">import</span> <span class="fn">fetch_openml</span>
+<span class="kw">from</span> <span class="cls">sklearn.model_selection</span>  <span class="kw">import</span> <span class="fn">train_test_split</span>
+<span class="kw">from</span> <span class="cls">sklearn.preprocessing</span>   <span class="kw">import</span> <span class="cls">StandardScaler</span>
+<span class="kw">from</span> <span class="cls">sklearn.metrics</span>          <span class="kw">import</span> <span class="fn">accuracy_score</span>, <span class="fn">classification_report</span>
+<span class="kw">from</span> <span class="cls">sklearn.pipeline</span>         <span class="kw">import</span> <span class="cls">Pipeline</span>
+
+<span class="cm"># ── Classifiers to compare ──────────────────────────────────</span>
+<span class="kw">from</span> <span class="cls">sklearn.linear_model</span>     <span class="kw">import</span> <span class="cls">LogisticRegression</span>
+<span class="kw">from</span> <span class="cls">sklearn.svm</span>              <span class="kw">import</span> <span class="cls">SVC</span>
+<span class="kw">from</span> <span class="cls">sklearn.tree</span>             <span class="kw">import</span> <span class="cls">DecisionTreeClassifier</span>
+<span class="kw">from</span> <span class="cls">sklearn.ensemble</span>         <span class="kw">import</span> <span class="cls">RandomForestClassifier</span>, <span class="cls">GradientBoostingClassifier</span>
+<span class="kw">from</span> <span class="cls">sklearn.neighbors</span>        <span class="kw">import</span> <span class="cls">KNeighborsClassifier</span>
+<span class="kw">from</span> <span class="cls">sklearn.neural_network</span>   <span class="kw">import</span> <span class="cls">MLPClassifier</span>
+<span class="kw">import</span> <span class="cls">time</span>
+
+<span class="cm"># ── 1. LOAD MNIST ────────────────────────────────────────────</span>
+<span class="fn">print</span>(<span class="str">"Loading MNIST dataset..."</span>)
+<span class="var">mnist</span> <span class="op">=</span> <span class="fn">fetch_openml</span>(<span class="str">'mnist_784'</span>, version<span class="op">=</span><span class="num">1</span>, as_frame<span class="op">=</span><span class="kw">False</span>)
+
+<span class="cm"># Pixel features (784 = 28×28) and integer labels</span>
+<span class="var">X</span>, <span class="var">y</span> <span class="op">=</span> <span class="var">mnist</span>.<span class="var">data</span>, <span class="var">mnist</span>.<span class="var">target</span>.<span class="fn">astype</span>(<span class="fn">int</span>)
+
+<span class="cm"># Normalise pixel values from [0,255] → [0,1]</span>
+<span class="var">X</span> <span class="op">=</span> <span class="var">X</span> <span class="op">/</span> <span class="num">255.0</span>
+
+<span class="cm"># Use 12,000 samples for fast demo (remove [:12000] for full run)</span>
+<span class="var">X</span>, <span class="var">y</span> <span class="op">=</span> <span class="var">X</span>[:<span class="num">12000</span>], <span class="var">y</span>[:<span class="num">12000</span>]
+
+<span class="cm"># Stratified split: 80% train, 20% test</span>
+<span class="var">X_train</span>, <span class="var">X_test</span>, <span class="var">y_train</span>, <span class="var">y_test</span> <span class="op">=</span> <span class="fn">train_test_split</span>(
+    <span class="var">X</span>, <span class="var">y</span>, test_size<span class="op">=</span><span class="num">0.2</span>, random_state<span class="op">=</span><span class="num">42</span>, stratify<span class="op">=</span><span class="var">y</span>
+)
+<span class="fn">print</span>(<span class="str">f"Train: {X_train.shape}, Test: {X_test.shape}"</span>)
+
+
+<span class="cm"># ── 2. DEFINE ALGORITHMS ─────────────────────────────────────</span>
+<span class="cm"># Each algorithm uses a Pipeline: scaler → classifier</span>
+<span class="var">algorithms</span> <span class="op">=</span> {
+
+    <span class="cm"># Logistic Regression: linear model, softmax output</span>
+    <span class="str">"Logistic Regression"</span>: <span class="cls">Pipeline</span>([
+        (<span class="str">'scaler'</span>, <span class="cls">StandardScaler</span>()),
+        (<span class="str">'clf'</span>,    <span class="cls">LogisticRegression</span>(
+            max_iter<span class="op">=</span><span class="num">1000</span>, C<span class="op">=</span><span class="num">1.0</span>,
+            multi_class<span class="op">=</span><span class="str">'multinomial'</span>, solver<span class="op">=</span><span class="str">'lbfgs'</span>
+        ))
+    ]),
+
+    <span class="cm"># Support Vector Machine: maps to high-dimensional space via RBF kernel</span>
+    <span class="str">"SVM (RBF Kernel)"</span>: <span class="cls">Pipeline</span>([
+        (<span class="str">'scaler'</span>, <span class="cls">StandardScaler</span>()),
+        (<span class="str">'clf'</span>,    <span class="cls">SVC</span>(kernel<span class="op">=</span><span class="str">'rbf'</span>, C<span class="op">=</span><span class="num">10</span>, gamma<span class="op">=</span><span class="str">'scale'</span>))
+    ]),
+
+    <span class="cm"># Decision Tree: rule-based splitting on pixel thresholds</span>
+    <span class="str">"Decision Tree"</span>: <span class="cls">Pipeline</span>([
+        (<span class="str">'scaler'</span>, <span class="cls">StandardScaler</span>()),
+        (<span class="str">'clf'</span>,    <span class="cls">DecisionTreeClassifier</span>(max_depth<span class="op">=</span><span class="num">20</span>, random_state<span class="op">=</span><span class="num">42</span>))
+    ]),
+
+    <span class="cm"># Random Forest: ensemble of 100 decision trees (bagging)</span>
+    <span class="str">"Random Forest"</span>: <span class="cls">Pipeline</span>([
+        (<span class="str">'scaler'</span>, <span class="cls">StandardScaler</span>()),
+        (<span class="str">'clf'</span>,    <span class="cls">RandomForestClassifier</span>(
+            n_estimators<span class="op">=</span><span class="num">100</span>, max_depth<span class="op">=</span><span class="num">20</span>, n_jobs<span class="op">=</span><span class="op">-</span><span class="num">1</span>,
+            random_state<span class="op">=</span><span class="num">42</span>
+        ))
+    ]),
+
+    <span class="cm"># K-Nearest Neighbours: classify by majority vote of 5 neighbours</span>
+    <span class="str">"K-Nearest Neighbours"</span>: <span class="cls">Pipeline</span>([
+        (<span class="str">'scaler'</span>, <span class="cls">StandardScaler</span>()),
+        (<span class="str">'clf'</span>,    <span class="cls">KNeighborsClassifier</span>(n_neighbors<span class="op">=</span><span class="num">5</span>, n_jobs<span class="op">=</span><span class="op">-</span><span class="num">1</span>))
+    ]),
+
+    <span class="cm"># MLP: shallow neural network with 2 hidden layers</span>
+    <span class="str">"MLP Neural Network"</span>: <span class="cls">Pipeline</span>([
+        (<span class="str">'scaler'</span>, <span class="cls">StandardScaler</span>()),
+        (<span class="str">'clf'</span>,    <span class="cls">MLPClassifier</span>(
+            hidden_layer_sizes<span class="op">=</span>(<span class="num">256</span>, <span class="num">128</span>),
+            activation<span class="op">=</span><span class="str">'relu'</span>,
+            max_iter<span class="op">=</span><span class="num">30</span>, random_state<span class="op">=</span><span class="num">42</span>,
+            early_stopping<span class="op">=</span><span class="kw">True</span>, validation_fraction<span class="op">=</span><span class="num">0.1</span>
+        ))
+    ]),
+}
+
+
+<span class="cm"># ── 3. TRAIN & EVALUATE ALL ALGORITHMS ──────────────────────</span>
+<span class="var">results</span> <span class="op">=</span> {}
+
+<span class="fn">print</span>(<span class="str">"\n{'-'*50}"</span>)
+<span class="fn">print</span>(<span class="str">f"{'Algorithm':<30} {'Accuracy':>10} {'Time':>8}"</span>)
+<span class="fn">print</span>(<span class="str">"{'-'*50}"</span>)
+
+<span class="kw">for</span> <span class="var">name</span>, <span class="var">pipeline</span> <span class="kw">in</span> <span class="var">algorithms</span>.<span class="fn">items</span>():
+    <span class="var">t0</span> <span class="op">=</span> <span class="cls">time</span>.<span class="fn">time</span>()
+
+    <span class="cm"># Fit on training data</span>
+    <span class="var">pipeline</span>.<span class="fn">fit</span>(<span class="var">X_train</span>, <span class="var">y_train</span>)
+
+    <span class="cm"># Predict on test data</span>
+    <span class="var">y_pred</span>   <span class="op">=</span> <span class="var">pipeline</span>.<span class="fn">predict</span>(<span class="var">X_test</span>)
+    <span class="var">accuracy</span> <span class="op">=</span> <span class="fn">accuracy_score</span>(<span class="var">y_test</span>, <span class="var">y_pred</span>) <span class="op">*</span> <span class="num">100</span>
+    <span class="var">elapsed</span>  <span class="op">=</span> <span class="cls">time</span>.<span class="fn">time</span>() <span class="op">-</span> <span class="var">t0</span>
+
+    <span class="var">results</span>[<span class="var">name</span>] <span class="op">=</span> {
+        <span class="str">'accuracy'</span>: <span class="var">accuracy</span>,
+        <span class="str">'time'</span>:     <span class="var">elapsed</span>,
+        <span class="str">'preds'</span>:    <span class="var">y_pred</span>,
+    }
+    <span class="fn">print</span>(<span class="str">f"{name:<30} {accuracy:>9.2f}% {elapsed:>6.1f}s"</span>)
+
+<span class="fn">print</span>(<span class="str">"{'-'*50}"</span>)
+
+<span class="cm"># Print best algorithm</span>
+<span class="var">best_name</span> <span class="op">=</span> <span class="fn">max</span>(<span class="var">results</span>, key<span class="op">=</span><span class="kw">lambda</span> <span class="var">k</span>: <span class="var">results</span>[<span class="var">k</span>][<span class="str">'accuracy'</span>])
+<span class="fn">print</span>(<span class="str">f"\nBest: {best_name} — {results[best_name]['accuracy']:.2f}%"</span>)
+
+
+<span class="cm"># ── 4. BAR CHART COMPARISON ──────────────────────────────────</span>
+<span class="var">names</span>       <span class="op">=</span> <span class="fn">list</span>(<span class="var">results</span>.<span class="fn">keys</span>())
+<span class="var">accuracies</span>  <span class="op">=</span> [<span class="var">results</span>[<span class="var">n</span>][<span class="str">'accuracy'</span>] <span class="kw">for</span> <span class="var">n</span> <span class="kw">in</span> <span class="var">names</span>]
+<span class="var">times</span>       <span class="op">=</span> [<span class="var">results</span>[<span class="var">n</span>][<span class="str">'time'</span>]     <span class="kw">for</span> <span class="var">n</span> <span class="kw">in</span> <span class="var">names</span>]
+<span class="var">colors</span>      <span class="op">=</span> [<span class="str">'#4dabf7'</span> <span class="kw">if</span> <span class="var">n</span> <span class="op">!=</span> <span class="var">best_name</span> <span class="kw">else</span> <span class="str">'#ffd43b'</span> <span class="kw">for</span> <span class="var">n</span> <span class="kw">in</span> <span class="var">names</span>]
+
+<span class="var">fig</span>, (<span class="var">ax1</span>, <span class="var">ax2</span>) <span class="op">=</span> <span class="var">plt</span>.<span class="fn">subplots</span>(<span class="num">1</span>, <span class="num">2</span>, figsize<span class="op">=</span>(<span class="num">14</span>, <span class="num">5</span>))
+
+<span class="var">ax1</span>.<span class="fn">barh</span>(<span class="var">names</span>, <span class="var">accuracies</span>, color<span class="op">=</span><span class="var">colors</span>)
+<span class="var">ax1</span>.<span class="fn">set_xlim</span>(<span class="num">70</span>, <span class="num">100</span>)
+<span class="var">ax1</span>.<span class="fn">set_xlabel</span>(<span class="str">'Test Accuracy (%)'</span>)
+<span class="var">ax1</span>.<span class="fn">set_title</span>(<span class="str">'Algorithm Accuracy Comparison — MNIST'</span>)
+<span class="kw">for</span> <span class="var">i</span>, <span class="var">v</span> <span class="kw">in</span> <span class="fn">enumerate</span>(<span class="var">accuracies</span>):
+    <span class="var">ax1</span>.<span class="fn">text</span>(<span class="var">v</span> <span class="op">+</span> <span class="num">0.1</span>, <span class="var">i</span>, <span class="str">f'{v:.1f}%'</span>, va<span class="op">=</span><span class="str">'center'</span>, fontsize<span class="op">=</span><span class="num">9</span>)
+
+<span class="var">ax2</span>.<span class="fn">barh</span>(<span class="var">names</span>, <span class="var">times</span>, color<span class="op">=</span><span class="str">'#ff6b6b'</span>)
+<span class="var">ax2</span>.<span class="fn">set_xlabel</span>(<span class="str">'Training Time (seconds)'</span>)
+<span class="var">ax2</span>.<span class="fn">set_title</span>(<span class="str">'Training Time Comparison'</span>)
+
+<span class="var">plt</span>.<span class="fn">tight_layout</span>()
+<span class="var">plt</span>.<span class="fn">savefig</span>(<span class="str">'algorithm_comparison.png'</span>, dpi<span class="op">=</span><span class="num">150</span>)
+<span class="var">plt</span>.<span class="fn">show</span>()
+
+
+<span class="cm"># ── 5. DETAILED REPORT FOR BEST ALGORITHM ───────────────────</span>
+<span class="fn">print</span>(<span class="str">f"\nDetailed report — {best_name}:"</span>)
+<span class="fn">print</span>(<span class="fn">classification_report</span>(
+    <span class="var">y_test</span>, <span class="var">results</span>[<span class="var">best_name</span>][<span class="str">'preds'</span>],
+    target_names<span class="op">=</span>[<span class="str">f'Digit {i}'</span> <span class="kw">for</span> <span class="var">i</span> <span class="kw">in</span> <span class="fn">range</span>(<span class="num">10</span>)]
+))
+</pre>
+    </div>
+
+    <!-- REQUIREMENTS -->
+    <div class="callout green">
+      <span class="title">Requirements — Install via pip</span>
+      torch torchvision matplotlib seaborn scikit-learn numpy<br><br>
+      <strong style="color:#ffd60a;">pip install torch torchvision matplotlib seaborn scikit-learn numpy</strong>
+    </div>
+
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <p>Question One · Machine Learning · MNIST Digit Classification 0–9</p>
+    <p style="margin-top:8px;">PyTorch CNN · Expected Test Accuracy ≈ 99.2%</p>
+  </div>
+
+</div>
+</body>
+</html>
